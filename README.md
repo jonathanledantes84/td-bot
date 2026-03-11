@@ -1,103 +1,171 @@
-# 🤖 TradingView → Bybit Webhook Bot
+# SuperTrend Bot — Bybit
 
-A beginner-friendly trading bot that executes orders on Bybit when your TradingView strategy fires an alert.
-
----
-
-## 📋 How It Works
-
-```
-TradingView Alert ──► Your Server (bot.py) ──► Bybit Order
-```
+Bot de trading automatico para Bybit. Calcula el indicador SuperTrend en Python y ejecuta ordenes sin TradingView ni intervencion manual.
 
 ---
 
-## 🚀 Step-by-Step Setup
+## Como funciona
 
-### Step 1 — Install Python
-Download Python from https://python.org (version 3.10 or higher).
+```
+Bybit API → Velas OHLC → SuperTrend → Cambio de tendencia → Orden BUY/SELL
+```
 
-### Step 2 — Install dependencies
-Open a terminal in this folder and run:
+- Tendencia cambia a ALCISTA → **BUY**
+- Tendencia cambia a BAJISTA → **SELL**
+- Sin cambio → espera y vuelve a verificar
+
+---
+
+## Funcionalidades
+
+- Multi-par en paralelo (BTC, ETH, SOL, etc.)
+- Stop Loss automatico por operacion
+- Limite de perdida diaria
+- Horario de trading configurable
+- Notificaciones por Telegram
+- Log en archivo por fecha
+- Auto-reinicio si el bot falla
+- Dashboard con Streamlit + graficos Plotly
+- Compatible con Railway, Replit y Windows local
+
+---
+
+## Archivos
+
+```
+bot-railway/
+  ├── config.py         → API keys y configuracion (el unico que editas)
+  ├── autobot.py        → bot principal
+  ├── dashboard.py      → panel visual con Streamlit
+  ├── requirements.txt  → dependencias
+  └── Procfile          → para deploy en Railway
+```
+
+---
+
+## Instalacion rapida (Windows)
+
 ```bash
-pip install -r requirements.txt
+# 1. Instalar dependencias
+python instalar.py
+
+# 2. Editar config.py con tus API keys de Bybit
+
+# 3. Iniciar el bot
+python autobot.py
+
+# 4. Iniciar el dashboard (opcional)
+streamlit run dashboard.py
 ```
 
-### Step 3 — Get your Bybit API keys
-1. Create a free account at https://bybit.com
-2. Go to **Account & Security → API Management**
-3. Create a new API key with **"Contract - Orders"** permission enabled
-4. Copy your **API Key** and **Secret Key**
+---
 
-### Step 4 — Configure bot.py
-Open `bot.py` and fill in:
+## Configuracion principal (config.py)
+
 ```python
-API_KEY        = "paste your API key here"
-API_SECRET     = "paste your secret key here"
-TESTNET        = True           # Keep True until you're ready for real money!
-WEBHOOK_SECRET = "pick any password"  # You'll use this in TradingView too
+API_KEY    = "tu api key"
+API_SECRET = "tu secret key"
+TESTNET    = True   # True = practica | False = dinero real
+
+SYMBOLS = [
+    {"symbol": "BTCUSDT", "qty": "0.001"},
+]
+
+STOP_LOSS_PCT        = 2.0   # % maximo de perdida por operacion
+DAILY_LOSS_LIMIT_PCT = 5.0   # % maximo de perdida diaria
+TRADING_HOUR_START   = 9     # hora de inicio
+TRADING_HOUR_END     = 22    # hora de fin
+AUTO_RESTART         = True
+
+TELEGRAM_TOKEN   = ""   # dejar vacio para desactivar
+TELEGRAM_CHAT_ID = ""
 ```
 
-### Step 5 — Run the bot
-```bash
-python bot.py
-```
-You should see: `🚀 Trading bot starting...`
+### Parametros del bot (autobot.py)
 
-### Step 6 — Expose your bot to the internet
-TradingView needs a public URL to send alerts to. Use **ngrok** (free):
-1. Download from https://ngrok.com
-2. Run: `ngrok http 5000`
-3. Copy the URL it gives you, e.g. `https://abc123.ngrok.io`
-
-Your webhook URL will be: `https://abc123.ngrok.io/webhook`
-
-### Step 7 — Set up TradingView Alert
-1. Open your chart/strategy in TradingView
-2. Create an alert → go to **"Notifications"** tab
-3. Enable **Webhook URL** and paste your URL: `https://abc123.ngrok.io/webhook`
-4. In the **Alert Message** box, paste this JSON (edit as needed):
-
-```json
-{
-  "secret": "pick any password",
-  "symbol": "BTCUSDT",
-  "side": "{{strategy.order.action}}",
-  "qty": "0.001"
-}
-```
-
-> 💡 `{{strategy.order.action}}` auto-fills "buy" or "sell" from your Pine Script strategy.
-
----
-
-## ✅ Test It First!
-
-Keep `TESTNET = True` and use Bybit Testnet (https://testnet.bybit.com) to test with fake money before going live.
-
-You can also test manually using curl:
-```bash
-curl -X POST http://localhost:5000/webhook \
-  -H "Content-Type: application/json" \
-  -d '{"secret":"pick any password","symbol":"BTCUSDT","side":"Buy","qty":"0.001"}'
+```python
+ATR_PERIOD     = 10     # periodo SuperTrend
+ATR_MULTIPLIER = 3.0    # multiplicador
+TIMEFRAME      = "D"    # "D"=diario | "60"=1hora | "15"=15min
+CHECK_INTERVAL = 3600   # segundos entre verificaciones
 ```
 
 ---
 
-## ⚠️ Important Warnings
+## Deploy en Railway (24/7)
 
-- **Never share your API keys with anyone**
-- **Never commit API keys to GitHub**
-- **Always test on Testnet first**
-- Trading bots can lose money — only risk what you can afford to lose
-- This bot uses **Market orders** by default (fills instantly at current price)
+1. Crear proyecto en [railway.app](https://railway.app)
+2. Subir los archivos de `bot-railway/`
+3. Configurar variables de entorno: `API_KEY`, `API_SECRET`
+4. Railway detecta el `Procfile` y arranca automaticamente
 
 ---
 
-## 📁 Files
+## Deploy en Replit
 
-| File | Purpose |
-|------|---------|
-| `bot.py` | Main bot server |
-| `requirements.txt` | Python packages needed |
-| `README.md` | This guide |
+1. Subir archivos a [replit.com](https://replit.com)
+2. En la terminal: `pip install pybit requests flask`
+3. Click en Run
+4. Usar [UptimeRobot](https://uptimerobot.com) para mantenerlo activo gratis
+
+---
+
+## Configurar Telegram
+
+1. Habla con **@BotFather** → `/newbot` → copia el TOKEN
+2. Habla con **@userinfobot** → copia tu CHAT_ID
+3. Pegalos en `config.py`
+
+---
+
+## Cuentas necesarias
+
+| Cuenta | URL |
+|--------|-----|
+| Bybit Testnet (practica) | https://testnet.bybit.com |
+| Bybit Real | https://bybit.com |
+| Railway (nube) | https://railway.app |
+
+---
+
+## Advertencias
+
+- Empieza siempre con `TESTNET = True`
+- Nunca subas `config.py` con tus API keys a GitHub
+- Los bots pueden perder dinero — solo arriesga lo que puedas perder
+- Usa variables de entorno para las keys en produccion
+
+---
+
+## TradingView — como usarlo junto al bot
+
+El bot calcula SuperTrend solo, sin necesitar TradingView. Pero TradingView es util para:
+
+### 1. Backtesting antes de cambiar parametros
+Antes de modificar `ATR_PERIOD` o `ATR_MULTIPLIER`, probarlo visualmente en TradingView con datos historicos para ver rentabilidad y cantidad de senales.
+
+Configuracion que coincide con el bot:
+- Indicador: **SuperTrend Strategy** (KivancOzbilgic)
+- ATR Period: `10`
+- ATR Multiplier: `3.0`
+- Timeframe: `1D`
+
+### 2. Validar que el bot calcula igual
+Tener abierto TradingView con el mismo SuperTrend para confirmar que las senales del bot coinciden con el grafico.
+
+### 3. Alertas de contexto macro
+Configurar alertas manuales para eventos que el bot no monitorea — ruptura de soporte, RSI extremo, volumen inusual — y decidir si pausar el bot manualmente.
+
+> El bot NO necesita webhooks de TradingView. Calcula todo directamente desde la API de Bybit.
+
+---
+
+## Herramientas recomendadas
+
+| Herramienta | Para que |
+|-------------|----------|
+| [Cursor](https://cursor.com) | Editar el bot con IA |
+| [Railway](https://railway.app) | Correr 24/7 en la nube |
+| [UptimeRobot](https://uptimerobot.com) | Monitorear que este activo |
+| [TradingView](https://tradingview.com) | Backtesting y validacion visual |
+| [Streamlit](https://streamlit.io) | Dashboard en Python |
